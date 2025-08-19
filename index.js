@@ -1,69 +1,29 @@
+const config = require('config');
 const Joi = require('joi');
 const express = require('express');
+const helmet = require('helmet');
+const morgan = require('morgan');
+const genres = require('./routes/genres');
+const logger = require('./middleware/logger');
+
 const app = express();
 
 app.use(express.json());
+app.use(helmet());
+app.use('/api/genres', genres)
 
-const genres = [
-    {id: 1, name: 'terror'},
-    {id: 2, name: 'plotwist'},
-    {id: 3, name: 'love'},
-    {id: 4, name: 'comedy'},
-    {id: 5, name: 'action'}
-];
+// Configuration
+console.log('Application Name: ' + config.get('name'));
+console.log('Server Host: ' + config.get('mail.host'));
+console.log('Server Host: ' + config.get('mail.password'));
 
-app.get('/api/genres', (req, res) => {
-    res.send(genres);
-});
+// Teste para saber diferenciar a troca de environments (production/development/stage)
+if (app.get('env') === 'development') {
+    app.use(morgan('tiny'));
+    console.log('Morgan enabled...');
+};
 
-app.get('/api/genres/:id', (req, res) => {
-    const genre = genres.find(g => g.id === parseInt(req.params.id));
-    if (!genre) return res.status(404).send('The genre with the given id was not found!');
-    res.send(genre);
-});
-
-app.post('/api/genres', (req, res) => {
-    const schema = {
-        name: Joi.string().required()
-    };
-
-    const result = Joi.validate(req.body, schema);
-
-    if (result.error) return res.status(400).send(result.error.details[0].message);
-        
-    const genre = {
-        id: genres.length + 1,
-        name: req.body.name
-    };
-
-    genres.push(genre);
-    res.send(genre);
-});
-
-app.put('/api/genres/:id', (req, res) => {
-    const genre = genres.find(g => g.id === parseInt(req.params.id));
-    if (!genre) return res.status(404).send('The genre with the given id was not found!');
-
-    const schema = {
-        name: Joi.string().required()
-    };
-
-    const result = Joi.validate(req.body, schema);
-    if (result.error) return res.status(400).send(result.error.details[0].message);
-
-    genre.name = req.body.name;
-    res.send(genre);
-});
-
-app.delete('/api/genres/:id', (req, res) => {
-    const genre = genres.find(g => g.id === parseInt(req.params.id));
-    if (!genre) return res.status(404).send('The genre with the given id was not found!');
-
-    const index = genres.indexOf(genre);
-    genres.splice(index);
-
-    res.send(genre);
-});
+app.use(logger);
 
 const port = process.env.PORT || 3000; 
 app.listen(port, () => {console.log(`Listening on port ${port}...`)}); 
